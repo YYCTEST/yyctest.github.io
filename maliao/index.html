@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<!-- Created with https://packager.turbowarp.org/ -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- We only include this to explicitly loosen the CSP of various packager environments. It does not provide any security. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' data: blob:">
+  <title>超级马里奥3</title>
+  <style>
+    body {
+      color: #ffffff;
+      font-family: sans-serif;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
+    :root, body.is-fullscreen {
+      background-color: #000000;
+    }
+    [hidden] {
+      display: none !important;
+    }
+    h1 {
+      font-weight: normal;
+    }
+    a {
+      color: inherit;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    #app, #loading, #error, #launch {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      cursor: default;
+      user-select: none;
+      -webkit-user-select: none;
+      background-color: #000000;
+    }
+    #launch {
+      background-color: rgba(0, 0, 0, 0.7);
+      cursor: pointer;
+    }
+    .green-flag {
+      width: 80px;
+      height: 80px;
+      padding: 16px;
+      border-radius: 100%;
+      background: rgba(255, 255, 255, 0.75);
+      border: 3px solid hsla(0, 100%, 100%, 1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-sizing: border-box;
+    }
+    #loading {
+      
+    }
+    .progress-bar-outer {
+      border: 1px solid currentColor;
+      height: 10px;
+      width: 200px;
+      max-width: 200px;
+    }
+    .progress-bar-inner {
+      height: 100%;
+      width: 0;
+      background-color: currentColor;
+    }
+    .loading-text, noscript {
+      font-weight: normal;
+      font-size: 36px;
+      margin: 0 0 16px;
+    }
+    .loading-image {
+      margin: 0 0 16px;
+    }
+    #error-message, #error-stack {
+      font-family: monospace;
+      max-width: 600px;
+      white-space: pre-wrap;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    #error-stack {
+      text-align: left;
+      max-height: 200px;
+      overflow: auto;
+    }
+    .control-button {
+      width: 2rem;
+      height: 2rem;
+      padding: 0.375rem;
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: pointer;
+      border: 0;
+      border-radius: 4px;
+    }
+    .control-button:hover {
+      background: #ff4c4c26;
+    }
+    .control-button.active {
+      background: #ff4c4c59;
+    }
+    .fullscreen-button {
+      background: white !important;
+    }
+    .standalone-fullscreen-button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      border-radius: 0 0 0 4px;
+      padding: 4px;
+      cursor: pointer;
+    }
+    .sc-canvas {
+      cursor: auto;
+    }
+    .sc-monitor-root[data-opcode^="data_"] .sc-monitor-value-color {
+      background-color: #ff8c1a;
+    }
+    .sc-monitor-row-value-outer {
+      background-color: #fc662c;
+    }
+    .sc-monitor-row-value-editing .sc-monitor-row-value-outer {
+      background-color: #e25b27;
+    }
+    
+  </style>
+  <meta name="theme-color" content="#000000">
+  
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="launch" class="screen" hidden title="Click to start">
+    <div class="green-flag">
+      <svg viewBox="0 0 16.63 17.5" width="42" height="44">
+        <defs><style>.cls-1,.cls-2{fill:#4cbf56;stroke:#45993d;stroke-linecap:round;stroke-linejoin:round;}.cls-2{stroke-width:1.5px;}</style></defs>
+        <path class="cls-1" d="M.75,2A6.44,6.44,0,0,1,8.44,2h0a6.44,6.44,0,0,0,7.69,0V12.4a6.44,6.44,0,0,1-7.69,0h0a6.44,6.44,0,0,0-7.69,0"/>
+        <line class="cls-2" x1="0.75" y1="16.75" x2="0.75" y2="0.75"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="loading" class="screen">
+    <noscript>Enable JavaScript</noscript>
+    <h1 class="loading-text">wasd移动 空格进入游戏</h1>
+    
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="loading-inner"></div></div>
+  </div>
+
+  <div id="error" class="screen" hidden>
+    <h1>Error</h1>
+    <details>
+      <summary id="error-message"></summary>
+      <p id="error-stack"></p>
+    </details>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    const appElement = document.getElementById('app');
+    const launchScreen = document.getElementById('launch');
+    const loadingScreen = document.getElementById('loading');
+    const loadingInner = document.getElementById('loading-inner');
+    const errorScreen = document.getElementById('error');
+    const errorScreenMessage = document.getElementById('error-message');
+    const errorScreenStack = document.getElementById('error-stack');
+
+    const handleError = (error) => {
+      console.error(error);
+      if (!errorScreen.hidden) return;
+      errorScreen.hidden = false;
+      errorScreenMessage.textContent = '' + error;
+      let debug = error && error.stack || 'no stack';
+      debug += '\nUser agent: ' + navigator.userAgent;
+      errorScreenStack.textContent = debug;
+    };
+    const setProgress = (progress) => {
+      if (loadingInner) loadingInner.style.width = progress * 100 + '%';
+    };
+    const interpolate = (a, b, t) => a + t * (b - a);
+
+    try {
+      setProgress(0.1);
+
+      const scaffolding = new Scaffolding.Scaffolding();
+      scaffolding.width = 480;
+      scaffolding.height = 360;
+      scaffolding.resizeMode = "preserve-ratio";
+      scaffolding.editableLists = false;
+      scaffolding.usePackagedRuntime = true;
+      scaffolding.setup();
+      scaffolding.appendTo(appElement);
+
+      const vm = scaffolding.vm;
+      window.scaffolding = scaffolding;
+      window.vm = scaffolding.vm;
+      window.Scratch = {
+        vm,
+        renderer: vm.renderer,
+        audioEngine: vm.runtime.audioEngine,
+        bitmapAdapter: vm.runtime.v2BitmapAdapter,
+        videoProvider: vm.runtime.ioDevices.video.provider
+      };
+
+      scaffolding.setUsername("player####".replace(/#/g, () => Math.floor(Math.random() * 10)));
+      scaffolding.setAccentColor("#ff4c4c");
+
+      try {
+        scaffolding.addCloudProvider(new Scaffolding.Cloud.WebSocketProvider(["wss://clouddata.turbowarp.org","wss://clouddata.turbowarp.xyz"], "p4-@超级马里奥3【任天堂公司】  (1).sb3"));
+      } catch (error) {
+        console.error(error);
+      }
+
+      vm.setTurboMode(false);
+      if (vm.setInterpolation) vm.setInterpolation(false);
+      if (vm.setFramerate) vm.setFramerate(30);
+      if (vm.renderer.setUseHighQualityRender) vm.renderer.setUseHighQualityRender(false);
+      if (vm.setRuntimeOptions) vm.setRuntimeOptions({
+        fencing: true,
+        miscLimits: true,
+        maxClones: 300,
+      });
+      if (vm.setCompilerOptions) vm.setCompilerOptions({
+        enabled: true,
+        warpTimer: false
+      });
+      if (vm.renderer.setMaxTextureDimension) vm.renderer.setMaxTextureDimension(2048);
+
+      if (typeof ScaffoldingAddons !== 'undefined') {
+        ScaffoldingAddons.run(scaffolding, {"gamepad":false,"pointerlock":false,"specialCloudBehaviors":false,"unsafeCloudBehaviors":false,"pause":false});
+      }
+
+      scaffolding.setExtensionSecurityManager({
+        getSandboxMode: () => 'unsandboxed',
+        canLoadExtensionFromProject: () => true
+      });
+      for (const extension of ["data:text/javascript;,(function(Scratch)%20%7B%20function%20a0_0x281a()%7Bconst%20_0x41de56%3D%5B'Got%5Cx20server'%2C'%E8%8E%B7%E5%8F%96%E5%BD%93%E5%89%8D%5Cx20%5Btype%5D'%2C'%E8%A7%92%E5%BA%A6%5Cx20%5Bmode%5D'%2C'elemodule.step_control'%2C'step_control'%2C'0x02'%2C'_busy'%2C'startNotifications'%2C'length'%2C'eleA'%2C'%E6%A8%A1%E5%BC%8F%E9%94%99%E8%AF%AF'%2C'query'%2C'getdata'%2C'QUERY_TYPE'%2C'0000ff31-0000-1000-8000-00805f9b34fb'%2C'%E6%96%AD%E5%BC%80%E9%93%BE%E6%8E%A5'%2C'_device'%2C'%E5%BC%BA%E5%BA%A6%E9%94%99%E8%AF%AF'%2C'%E6%98%AF%E5%90%A6%E5%B7%B2%E9%93%BE%E6%8E%A5'%2C'892536iKjkVF'%2C'CMD_STEP'%2C'isConnected'%2C'Got%5Cx20characteristics'%2C'Disconnected%5Cx20from%5Cx20device'%2C'ArgumentType'%2C'then'%2C'TDDATA_TYPE'%2C'elemodule.getdata_dig'%2C'ele_off'%2C'%E8%8E%B7%E5%8F%96%E8%A7%92%E5%BA%A6%5Cx20%5Btype%5D'%2C'unsandboxed'%2C'buffer'%2C'state'%2C'%E5%81%9C%E6%AD%A2%E7%94%B5%E5%87%BB%5Cx20%5Btd%5D'%2C'12SSrFTT'%2C'_onMessage'%2C'repeat'%2C'0x01'%2C'CMD_ELE'%2C'%E9%A2%91%E7%8E%871'%2C'elemodule.ele_custom'%2C'disconnect'%2C'updated'%2C'%E8%AE%A1%E6%AD%A5%5Cx20%5Bmode%5D'%2C'open'%2C'webble'%2C'ele_mode'%2C'0x04'%2C'elemodule.dig_control'%2C'motor'%2C'BOOLEAN'%2C'REPORTER'%2C'169934CGhAUc'%2C'210RylxwE'%2C'match'%2C'onDataChanged'%2C'B%E9%80%9A%E9%81%93'%2C'clearTimeout'%2C'any'%2C'padStart'%2C'CMD_MOTOR'%2C'elemodule.disconnect'%2C'bind'%2C'_ble'%2C'EXTENSION_ID'%2C'elemodule.motor_control'%2C'0000ff30-0000-1000-8000-00805f9b34fb'%2C'target'%2C'---'%2C'A_state'%2C'map'%2C'motor_control'%2C'catch'%2C'reset'%2C'0x12'%2C'MOTOR_TYPE'%2C'register'%2C'EVENT'%2C'elemodule.getdata_td'%2C'OC_DATA_TYPE'%2C'NUMBER'%2C'ele_stop'%2C'wid'%2C'setTimeout'%2C'0x13'%2C'%E7%94%B5%E5%87%BB%5Cx20%5Btd%5D%5Cx20%E6%A8%A1%E5%BC%8F%5Bmode%5D%5Cx20%E5%BC%BA%E5%BA%A6%5Bstrength%5D'%2C'A%E9%80%9A%E9%81%93'%2C'error'%2C'27740FTXnti'%2C'CMD_QUERY'%2C'60DtYmOt'%2C'0x00'%2C'event'%2C'connected'%2C'_use'%2C'log'%2C'slice'%2C'%E6%98%AF%E5%90%A6%E8%BF%9E%E9%80%9A'%2C'Failed%5Cx20to%5Cx20write%5Cx20value%5Cx20to%5Cx20wid'%2C'92200oIsTgl'%2C'elemodule.ele'%2C'toString'%2C'TD_TYPE'%2C'Started%5Cx20notifications%5Cx20on%5Cx20nid'%2C'connect'%2C'data'%2C'%E4%BB%BB%E6%84%8F%E7%94%B5%E5%87%BB%E9%80%9A%E9%81%93'%2C'_onDataChanged'%2C'getdata_td'%2C'2131696dcxJGN'%2C'getInfo'%2C'eleB'%2C'elemodule.connect'%2C'EXTENSION_NAME'%2C'DIG_CONTROL_TYPE'%2C'B_state'%2C'extensions'%2C'requestDevice'%2C'type'%2C'nid'%2C'getCharacteristic'%2C'DIG_TYPE'%2C'ele_custom'%2C'elemodule.query'%2C'mode'%2C'70dCymPA'%2C'writeValueWithoutResponse'%2C'runtime'%2C'bluetooth'%2C'%E9%A2%91%E7%8E%87%E9%94%99%E8%AF%AF'%2C'dig'%2C'STRING'%2C'3ssOAnv'%2C'elemodule.ele_stop'%2C'gatt'%2C'elemodule'%2C'CMD_DIG'%2C'%E5%BD%B9%E6%AC%A1%E5%85%83%E7%94%B5%E5%87%BB'%2C'ele'%2C'This%5Cx20extension%5Cx20must%5Cx20run%5Cx20unsandboxed'%2C'_peripheral'%2C'%E9%A9%AC%E8%BE%BE%5Cx20%5Bmode%5D'%2C'1350459scpHXd'%2C'Got%5Cx20device%3A'%2C'dig_control'%2C'_timeoutID'%2C'0x11'%2C'step'%2C'startHats'%2C'uuid'%2C'0x03'%2C'%E6%97%B6%E9%97%B4%E9%94%99%E8%AF%AF'%2C'COMMAND'%2C'GETDATA_TYPE'%2C'95994tRsnhl'%2C'id%3A'%2C'getdata_dig'%2C'_busyTimeoutID'%2C'elemodule.isConnected'%2C'scratch'%2C'service'%2C'%E8%8E%B7%E5%8F%96%5Cx20%5Btd%5D%5Cx20%5Btype%5D'%2C'call'%2C'send'%2C'join'%2C'elemodule.onDataChanged'%2C'%E9%A2%91%E7%8E%873'%5D%3Ba0_0x281a%3Dfunction()%7Breturn%20_0x41de56%3B%7D%3Breturn%20a0_0x281a()%3B%7Dfunction%20a0_0x1fbe(_0x5e1fa8%2C_0x3082bb)%7Bconst%20_0x281add%3Da0_0x281a()%3Breturn%20a0_0x1fbe%3Dfunction(_0x1fbe7a%2C_0x841560)%7B_0x1fbe7a%3D_0x1fbe7a-0x190%3Blet%20_0x2c4657%3D_0x281add%5B_0x1fbe7a%5D%3Breturn%20_0x2c4657%3B%7D%2Ca0_0x1fbe(_0x5e1fa8%2C_0x3082bb)%3B%7D(function(_0x38ab20%2C_0x17fdd1)%7Bconst%20_0x1d7493%3Da0_0x1fbe%2C_0x57abb5%3D_0x38ab20()%3Bwhile(!!%5B%5D)%7Btry%7Bconst%20_0x80bdc8%3D-parseInt(_0x1d7493(0x22e))%2F0x1*(-parseInt(_0x1d7493(0x1de))%2F0x2)%2BparseInt(_0x1d7493(0x1bd))%2F0x3%2B-parseInt(_0x1d7493(0x217))%2F0x4%2B-parseInt(_0x1d7493(0x202))%2F0x5*(-parseInt(_0x1d7493(0x1df))%2F0x6)%2BparseInt(_0x1d7493(0x227))%2F0x7*(-parseInt(_0x1d7493(0x20d))%2F0x8)%2BparseInt(_0x1d7493(0x19d))%2F0x9*(parseInt(_0x1d7493(0x204))%2F0xa)%2B-parseInt(_0x1d7493(0x191))%2F0xb*(-parseInt(_0x1d7493(0x1cc))%2F0xc)%3Bif(_0x80bdc8%3D%3D%3D_0x17fdd1)break%3Belse%20_0x57abb5%5B'push'%5D(_0x57abb5%5B'shift'%5D())%3B%7Dcatch(_0x917d30)%7B_0x57abb5%5B'push'%5D(_0x57abb5%5B'shift'%5D())%3B%7D%7D%7D(a0_0x281a%2C0x45a00)%2Cfunction(_0x1c634f)%7Bconst%20_0x323375%3Da0_0x1fbe%3Bif(!_0x1c634f%5B'extensions'%5D%5B_0x323375(0x1c8)%5D)throw%20new%20Error(_0x323375(0x235))%3Bconst%20_0xe75327%3D_0x1c634f%5B_0x323375(0x1c2)%5D%2C_0x1f83ec%3D_0x1c634f%5B'BlockType'%5D%2C_0x968db6%3Dfunction(_0xab4004)%7Breturn%20_0xab4004%5B'default'%5D%3B%7D%2C_0x5afb34%3D%7B'service'%3A0xff30%2C'wid'%3A_0x323375(0x1b8)%2C'nid'%3A'0000ff32-0000-1000-8000-00805f9b34fb'%2C'uuid'%3A_0x323375(0x1ec)%7D%3Blet%20_0x3e4dd5%3D%7B'CMD_ELE'%3A0x11%2C'CMD_MOTOR'%3A0x12%2C'CMD_STEP'%3A0x13%2C'CMD_DIG'%3A0x14%2C'CMD_QUERY'%3A0x71%7D%3Bclass%20_0x45f85f%7Bconstructor(_0x468fca)%7Bconst%20_0x17b472%3D_0x323375%3Bthis%5B_0x17b472(0x1e9)%5D%3Dnull%2Cthis%5B_0x17b472(0x1ba)%5D%3Dnull%2Cthis%5B_0x17b472(0x1cd)%5D%3D_0x468fca%2Cconsole%5B'log'%5D('on_message'%2C_0x468fca)%2Cthis%5B_0x17b472(0x194)%5D%3Dnull%2Cthis%5B'_busy'%5D%3D!%5B%5D%2Cthis%5B_0x17b472(0x1a0)%5D%3Dnull%2Cthis%5B_0x17b472(0x1f3)%5D%3Dthis%5B_0x17b472(0x1f3)%5D%5B'bind'%5D(this)%2Cthis%5B_0x17b472(0x1d4)%5D%3D0x0%3B%7Dasync%5B_0x323375(0x212)%5D()%7Bconst%20_0x432610%3D_0x323375%3Btry%7Bif(this%5B_0x432610(0x1bf)%5D())await%20this%5B_0x432610(0x1d3)%5D()%3Bthis%5B_0x432610(0x1ba)%5D%3Dawait%20navigator%5B_0x432610(0x22a)%5D%5B_0x432610(0x21f)%5D(%7B'filters'%3A%5B%7B'services'%3A%5B_0x5afb34%5B_0x432610(0x1a3)%5D%5D%7D%5D%2C'optionalServices'%3A%5B_0x5afb34%5B_0x432610(0x221)%5D%2C_0x5afb34%5B_0x432610(0x1fc)%5D%2C_0x5afb34%5B_0x432610(0x198)%5D%5D%7D)%2Cconsole%5B_0x432610(0x209)%5D(_0x432610(0x192)%2Cthis%5B_0x432610(0x1ba)%5D)%2Cconsole%5B_0x432610(0x209)%5D(_0x432610(0x19e)%2Cthis%5B_0x432610(0x1ba)%5D%5B'id'%5D)%3Bconst%20_0x4bb86a%3Dawait%20this%5B'_device'%5D%5B_0x432610(0x230)%5D%5B_0x432610(0x212)%5D()%2C_0x31279f%3Dawait%20_0x4bb86a%5B'getPrimaryService'%5D(_0x432610(0x1ec))%3Bconsole%5B_0x432610(0x209)%5D(_0x432610(0x1aa)%2C_0x31279f)%3Bconst%20_0xbe0bd0%3Dawait%20_0x31279f%5B_0x432610(0x222)%5D(_0x5afb34%5B'wid'%5D)%2C_0x10496e%3Dawait%20_0x31279f%5B_0x432610(0x222)%5D(_0x5afb34%5B_0x432610(0x221)%5D)%3Bthis%5B_0x432610(0x1e9)%5D%3D%7B'wid'%3A_0xbe0bd0%2C'nid'%3A_0x10496e%7D%2Cconsole%5B_0x432610(0x209)%5D(_0x432610(0x1c0)%2Cthis%5B_0x432610(0x1e9)%5D)%2Cawait%20this%5B_0x432610(0x1e9)%5D%5B_0x432610(0x221)%5D%5B_0x432610(0x1b1)%5D()%2Cconsole%5B'log'%5D(_0x432610(0x211))%2Cthis%5B_0x432610(0x1e9)%5D%5B'nid'%5D%5B'addEventListener'%5D('characteristicvaluechanged'%2Cfunction(_0x482f11)%7Bconst%20_0x341233%3D_0x432610%3Bconsole%5B_0x341233(0x209)%5D(_0x341233(0x206)%2C_0x482f11)%3Bconst%20_0x335cc9%3Dnew%20Uint8Array(_0x482f11%5B_0x341233(0x1ed)%5D%5B'value'%5D%5B_0x341233(0x1c9)%5D)%3Bconsole%5B'log'%5D(_0x341233(0x213)%2C_0x335cc9)%2Cthis%5B_0x341233(0x1cd)%5D(_0x335cc9)%3B%7D%5B_0x432610(0x1e8)%5D(this))%3B%7Dcatch(_0x491821)%7Bconsole%5B_0x432610(0x209)%5D(_0x491821)%3B%7D%7D%5B'isConnected'%5D()%7Bconst%20_0x126119%3D_0x323375%3Blet%20_0x317d34%3D!%5B%5D%3Breturn%20this%5B_0x126119(0x1ba)%5D%26%26(_0x317d34%3Dthis%5B_0x126119(0x1ba)%5D%5B_0x126119(0x230)%5D%5B_0x126119(0x207)%5D)%2C_0x317d34%3B%7Dasync%5B_0x323375(0x1d3)%5D()%7Bconst%20_0xb92297%3D_0x323375%3Bthis%5B'_device'%5D%26%26(await%20this%5B_0xb92297(0x1ba)%5D%5B_0xb92297(0x230)%5D%5B'disconnect'%5D()%2Cconsole%5B_0xb92297(0x209)%5D(_0xb92297(0x1c1))%2Cthis%5B'_device'%5D%3Dnull)%2Cthis%5B_0xb92297(0x1e9)%5D%26%26(this%5B'_ble'%5D%3Dnull)%2Cthis%5B_0xb92297(0x1f3)%5D()%3B%7D%5B_0x323375(0x1f3)%5D()%7Bconst%20_0x16ec4e%3D_0x323375%3Bthis%5B'_timeoutID'%5D%26%26(window%5B_0x16ec4e(0x1e3)%5D(this%5B_0x16ec4e(0x194)%5D)%2Cthis%5B_0x16ec4e(0x194)%5D%3Dnull)%2Cthis%5B_0x16ec4e(0x1a0)%5D%26%26(window%5B_0x16ec4e(0x1e3)%5D(this%5B_0x16ec4e(0x1a0)%5D)%2Cthis%5B_0x16ec4e(0x1a0)%5D%3Dnull)%2Cthis%5B'_busy'%5D%3D!%5B%5D%3B%7Dasync%5B_0x323375(0x1a6)%5D(_0x98a659%2C_0x1d1b33)%7Bconst%20_0x4cc9c4%3D_0x323375%3Bconsole%5B_0x4cc9c4(0x209)%5D(_0x4cc9c4(0x1a6)%2C_0x98a659%2C_0x1d1b33)%3Bwhile(this%5B_0x4cc9c4(0x1b0)%5D)%7Bawait%20new%20Promise(_0x114bb0%3D%3EsetTimeout(_0x114bb0%2C0x14))%3B%7Dif(!this%5B_0x4cc9c4(0x1bf)%5D())return%3Bthis%5B_0x4cc9c4(0x1b0)%5D%3D!!%5B%5D%2Cthis%5B_0x4cc9c4(0x1a0)%5D%3Dwindow%5B_0x4cc9c4(0x1fd)%5D(()%3D%3E%7Bconst%20_0x369004%3D_0x4cc9c4%3Bthis%5B_0x369004(0x1b0)%5D%3D!%5B%5D%3B%7D%2C0x1388)%3Bconst%20_0x1afd30%3Dnew%20Uint8Array(_0x1d1b33%5B_0x4cc9c4(0x1b2)%5D%2B0x2)%3B_0x1afd30%5B0x0%5D%3D0x35%2C_0x1afd30%5B0x1%5D%3D_0x98a659%3Bfor(let%20_0x46d03e%3D0x0%3B_0x46d03e%3C_0x1d1b33%5B_0x4cc9c4(0x1b2)%5D%3B_0x46d03e%2B%2B)%7B_0x1afd30%5B_0x46d03e%2B0x2%5D%3D_0x1d1b33%5B_0x46d03e%5D%3B%7Dconsole%5B'log'%5D('output'%2C_0x1afd30)%3Bconst%20_0x3e3643%3D_0x1afd30%5B_0x4cc9c4(0x1c9)%5D%3Bthis%5B_0x4cc9c4(0x1e9)%5D%5B_0x4cc9c4(0x1fc)%5D%5B_0x4cc9c4(0x228)%5D(_0x3e3643)%5B_0x4cc9c4(0x1c3)%5D(()%3D%3E%7Bconst%20_0x450e12%3D_0x4cc9c4%3Bthis%5B_0x450e12(0x1b0)%5D%3D!%5B%5D%2Cwindow%5B'clearTimeout'%5D(this%5B_0x450e12(0x1a0)%5D)%3B%7D)%5B_0x4cc9c4(0x1f2)%5D(_0x5a7ccc%3D%3E%7Bconst%20_0xc4d7fb%3D_0x4cc9c4%3Bconsole%5B'log'%5D(_0xc4d7fb(0x20c)%2C_0x5a7ccc)%3B%7D)%3B%7D%7Dclass%20_0xf218bb%7Bconstructor(_0x40c1db)%7Bconst%20_0x290435%3D_0x323375%3B_0x40c1db%3Fthis%5B'runtime'%5D%3D_0x40c1db%3Athis%5B_0x290435(0x229)%5D%3D_0x1c634f%5B'vm'%5D%5B_0x290435(0x229)%5D%3Bthis%5B_0x290435(0x208)%5D%3D_0x290435(0x1d7)%2Cthis%5B_0x290435(0x1cd)%5D%3Dthis%5B_0x290435(0x1cd)%5D%5B_0x290435(0x1e8)%5D(this)%2Cthis%5B_0x290435(0x1ef)%5D%3D%7B'state'%3A0x0%2C'open'%3A0x0%2C'strength'%3A0x0%2C'mode'%3A0x0%7D%2Cthis%5B'B_state'%5D%3D%7B'state'%3A0x0%2C'open'%3A0x0%2C'strength'%3A0x0%2C'mode'%3A0x0%7D%2Cthis%5B'dl'%5D%3D0x64%2Cthis%5B'motor'%5D%3D0x0%2Cthis%5B_0x290435(0x196)%5D%3D0x0%2Cthis%5B'dig'%5D%3D%7B'gx'%3A0x0%2C'gy'%3A0x0%2C'gz'%3A0x0%2C'x'%3A0x0%2C'y'%3A0x0%2C'z'%3A0x0%7D%3Bswitch(this%5B_0x290435(0x208)%5D)%7Bcase'scratch'%3Athis%5B'_peripheral'%5D%3Dnew%20ScratchELE(this%5B_0x290435(0x229)%5D%2C_0xf218bb%5B_0x290435(0x1ea)%5D%2Cthis%5B_0x290435(0x1cd)%5D)%3Bbreak%3Bcase%20_0x290435(0x1d7)%3Athis%5B_0x290435(0x236)%5D%3Dnew%20_0x45f85f(this%5B_0x290435(0x1cd)%5D)%3Bbreak%3B%7D%7Dstatic%20get%5B_0x323375(0x21b)%5D()%7Bconst%20_0xd85594%3D_0x323375%3Breturn%20_0xd85594(0x233)%3B%7Dstatic%20get%5B'EXTENSION_ID'%5D()%7Bconst%20_0x7bfb29%3D_0x323375%3Breturn%20_0x7bfb29(0x231)%3B%7D%5B_0x323375(0x218)%5D()%7Bconst%20_0x464a71%3D_0x323375%3Breturn%7B'id'%3A_0xf218bb%5B_0x464a71(0x1ea)%5D%2C'name'%3A_0xf218bb%5B_0x464a71(0x21b)%5D%2C'showStatusButton'%3Athis%5B_0x464a71(0x208)%5D%3D%3D%3D_0x464a71(0x1a2)%2C'blocks'%3A%5B%7B'opcode'%3A'connect'%2C'text'%3A_0x968db6(%7B'id'%3A_0x464a71(0x21a)%2C'default'%3A'%E9%93%BE%E6%8E%A5'%2C'description'%3A'connect'%7D)%2C'blockType'%3A_0x1f83ec%5B_0x464a71(0x19b)%5D%7D%2C%7B'opcode'%3A_0x464a71(0x1d3)%2C'text'%3A_0x968db6(%7B'id'%3A_0x464a71(0x1e7)%2C'default'%3A_0x464a71(0x1b9)%2C'description'%3A_0x464a71(0x1d3)%7D)%2C'blockType'%3A_0x1f83ec%5B_0x464a71(0x19b)%5D%7D%2C%7B'opcode'%3A_0x464a71(0x1bf)%2C'text'%3A_0x968db6(%7B'id'%3A_0x464a71(0x1a1)%2C'default'%3A_0x464a71(0x1bc)%2C'description'%3A_0x464a71(0x1bf)%7D)%2C'blockType'%3A_0x1f83ec%5B_0x464a71(0x1dc)%5D%7D%2C_0x464a71(0x1ee)%2C%7B'opcode'%3A_0x464a71(0x1b5)%2C'text'%3A_0x968db6(%7B'id'%3A_0x464a71(0x225)%2C'default'%3A'%E6%9F%A5%E8%AF%A2%5Cx20%5Btype%5D'%2C'description'%3A_0x464a71(0x1b5)%7D)%2C'arguments'%3A%7B'type'%3A%7B'type'%3A_0xe75327%5B_0x464a71(0x22d)%5D%2C'menu'%3A_0x464a71(0x1b7)%7D%7D%2C'blockType'%3A_0x1f83ec%5B_0x464a71(0x19b)%5D%7D%2C%7B'opcode'%3A_0x464a71(0x216)%2C'text'%3A_0x968db6(%7B'id'%3A_0x464a71(0x1f8)%2C'default'%3A_0x464a71(0x1a4)%2C'description'%3A'getdata_td'%7D)%2C'arguments'%3A%7B'td'%3A%7B'type'%3A_0xe75327%5B_0x464a71(0x22d)%5D%2C'menu'%3A_0x464a71(0x210)%7D%2C'type'%3A%7B'type'%3A_0xe75327%5B'STRING'%5D%2C'menu'%3A_0x464a71(0x1c4)%7D%7D%2C'blockType'%3A_0x1f83ec%5B_0x464a71(0x1dd)%5D%7D%2C%7B'opcode'%3A_0x464a71(0x19f)%2C'text'%3A_0x968db6(%7B'id'%3A_0x464a71(0x1c5)%2C'default'%3A_0x464a71(0x1c7)%2C'description'%3A_0x464a71(0x19f)%7D)%2C'arguments'%3A%7B'type'%3A%7B'type'%3A_0xe75327%5B_0x464a71(0x22d)%5D%2C'menu'%3A_0x464a71(0x223)%7D%7D%2C'blockType'%3A_0x1f83ec%5B'REPORTER'%5D%7D%2C%7B'opcode'%3A_0x464a71(0x1b6)%2C'text'%3A_0x968db6(%7B'id'%3A'elemodule.getdata'%2C'default'%3A_0x464a71(0x1ab)%2C'description'%3A_0x464a71(0x1b6)%7D)%2C'arguments'%3A%7B'type'%3A%7B'type'%3A_0xe75327%5B_0x464a71(0x22d)%5D%2C'menu'%3A_0x464a71(0x19c)%7D%7D%2C'blockType'%3A_0x1f83ec%5B_0x464a71(0x1dd)%5D%7D%2C%7B'blockType'%3A_0x1f83ec%5B_0x464a71(0x1f7)%5D%2C'opcode'%3A'onDataChanged'%2C'text'%3A_0x968db6(%7B'id'%3A_0x464a71(0x1a8)%2C'default'%3A'%E5%BD%93%5Cx20%5Btype%5D%5Cx20%E6%95%B0%E6%8D%AE%E5%8F%91%E7%94%9F%E5%8F%98%E5%8C%96'%2C'description'%3A_0x464a71(0x1e1)%7D)%2C'arguments'%3A%7B'type'%3A%7B'type'%3A_0xe75327%5B'STRING'%5D%2C'menu'%3A_0x464a71(0x1f9)%7D%7D%2C'isEdgeActivated'%3A!%5B%5D%7D%2C_0x464a71(0x1ee)%2C%7B'opcode'%3A_0x464a71(0x1d8)%2C'text'%3A_0x968db6(%7B'id'%3A_0x464a71(0x20e)%2C'default'%3A_0x464a71(0x1ff)%2C'description'%3A_0x464a71(0x234)%7D)%2C'arguments'%3A%7B'td'%3A%7B'type'%3A_0xe75327%5B_0x464a71(0x22d)%5D%2C'menu'%3A_0x464a71(0x210)%7D%2C'mode'%3A%7B'type'%3A_0xe75327%5B_0x464a71(0x1fa)%5D%7D%2C'strength'%3A%7B'type'%3A_0xe75327%5B'NUMBER'%5D%2C'defaultValue'%3A0xa%7D%7D%2C'blockType'%3A_0x1f83ec%5B_0x464a71(0x19b)%5D%7D%2C%7B'opcode'%3A_0x464a71(0x224)%2C'text'%3A_0x968db6(%7B'id'%3A_0x464a71(0x1d2)%2C'default'%3A'%E7%94%B5%E5%87%BB%5Cx20%5Btd%5D%5Cx20%E5%BC%BA%E5%BA%A6%5Bstrength%5D%5Cx20%E9%A2%91%E7%8E%87%5Bhz%5D%5Cx20%E6%97%B6%E9%97%B4%5Btimes%5D'%2C'description'%3A_0x464a71(0x224)%7D)%2C'arguments'%3A%7B'td'%3A%7B'type'%3A_0xe75327%5B_0x464a71(0x22d)%5D%2C'menu'%3A_0x464a71(0x210)%7D%2C'strength'%3A%7B'type'%3A_0xe75327%5B_0x464a71(0x1fa)%5D%2C'defaultValue'%3A0xa%7D%2C'hz'%3A%7B'type'%3A_0xe75327%5B_0x464a71(0x1fa)%5D%2C'defaultValue'%3A0xa%7D%2C'times'%3A%7B'type'%3A_0xe75327%5B_0x464a71(0x1fa)%5D%2C'defaultValue'%3A0xa%7D%7D%2C'blockType'%3A_0x1f83ec%5B'COMMAND'%5D%7D%2C%7B'opcode'%3A_0x464a71(0x1c6)%2C'text'%3A_0x968db6(%7B'id'%3A_0x464a71(0x22f)%2C'default'%3A_0x464a71(0x1cb)%2C'description'%3A_0x464a71(0x1fb)%7D)%2C'arguments'%3A%7B'td'%3A%7B'type'%3A_0xe75327%5B_0x464a71(0x22d)%5D%2C'menu'%3A_0x464a71(0x210)%7D%7D%2C'blockType'%3A_0x1f83ec%5B_0x464a71(0x19b)%5D%7D%2C_0x464a71(0x1ee)%2C%7B'opcode'%3A_0x464a71(0x193)%2C'text'%3A_0x968db6(%7B'id'%3A_0x464a71(0x1da)%2C'default'%3A_0x464a71(0x1ac)%2C'description'%3A_0x464a71(0x193)%7D)%2C'arguments'%3A%7B'mode'%3A%7B'type'%3A_0xe75327%5B_0x464a71(0x22d)%5D%2C'menu'%3A_0x464a71(0x21c)%7D%7D%2C'blockType'%3A_0x1f83ec%5B'COMMAND'%5D%7D%2C%7B'opcode'%3A'motor_control'%2C'text'%3A_0x968db6(%7B'id'%3A_0x464a71(0x1eb)%2C'default'%3A_0x464a71(0x190)%2C'description'%3A_0x464a71(0x1f1)%7D)%2C'arguments'%3A%7B'mode'%3A%7B'type'%3A_0xe75327%5B_0x464a71(0x22d)%5D%2C'menu'%3A_0x464a71(0x1f5)%7D%7D%2C'blockType'%3A_0x1f83ec%5B_0x464a71(0x19b)%5D%7D%2C%7B'opcode'%3A_0x464a71(0x1ae)%2C'text'%3A_0x968db6(%7B'id'%3A_0x464a71(0x1ad)%2C'default'%3A_0x464a71(0x1d5)%2C'description'%3A_0x464a71(0x1ae)%7D)%2C'arguments'%3A%7B'mode'%3A%7B'type'%3A_0xe75327%5B'STRING'%5D%2C'menu'%3A'STEP_TYPE'%7D%7D%2C'blockType'%3A_0x1f83ec%5B_0x464a71(0x19b)%5D%7D%5D%2C'menus'%3A%7B'DIG_CONTROL_TYPE'%3A%7B'acceptReporters'%3A!!%5B%5D%2C'items'%3A%5B%7B'text'%3A'%E5%BC%80%E5%90%AF'%2C'value'%3A_0x464a71(0x1cf)%7D%2C%7B'text'%3A'%E5%85%B3%E9%97%AD'%2C'value'%3A_0x464a71(0x205)%7D%5D%7D%2C'STEP_TYPE'%3A%7B'acceptReporters'%3A!!%5B%5D%2C'items'%3A%5B%7B'text'%3A'%E5%BC%80%E5%90%AF'%2C'value'%3A_0x464a71(0x1cf)%7D%2C%7B'text'%3A'%E5%85%B3%E9%97%AD'%2C'value'%3A_0x464a71(0x205)%7D%2C%7B'text'%3A'%E6%B8%85%E9%9B%B6'%2C'value'%3A_0x464a71(0x1af)%7D%2C%7B'text'%3A'%E6%9A%82%E5%81%9C'%2C'value'%3A_0x464a71(0x199)%7D%2C%7B'text'%3A'%E6%81%A2%E5%A4%8D'%2C'value'%3A_0x464a71(0x1d9)%7D%5D%7D%2C'MOTOR_TYPE'%3A%7B'acceptReporters'%3A!!%5B%5D%2C'items'%3A%5B%7B'text'%3A'%E5%BC%80%E5%90%AF'%2C'value'%3A'0x01'%7D%2C%7B'text'%3A'%E5%85%B3%E9%97%AD'%2C'value'%3A_0x464a71(0x205)%7D%2C%7B'text'%3A_0x464a71(0x1d1)%2C'value'%3A_0x464a71(0x195)%7D%2C%7B'text'%3A'%E9%A2%91%E7%8E%872'%2C'value'%3A_0x464a71(0x1f4)%7D%2C%7B'text'%3A_0x464a71(0x1a9)%2C'value'%3A_0x464a71(0x1fe)%7D%5D%7D%2C'GETDATA_TYPE'%3A%7B'acceptReporters'%3A!!%5B%5D%2C'items'%3A%5B%7B'text'%3A'%E7%94%B5%E9%87%8F'%2C'value'%3A'dl'%7D%2C%7B'text'%3A'%E9%A9%AC%E8%BE%BE'%2C'value'%3A'motor'%7D%2C%7B'text'%3A'%E6%AD%A5%E6%95%B0'%2C'value'%3A_0x464a71(0x196)%7D%5D%7D%2C'OC_DATA_TYPE'%3A%7B'acceptReporters'%3A!%5B%5D%2C'items'%3A%5B%7B'text'%3A'%E4%BB%BB%E6%84%8F'%2C'value'%3A_0x464a71(0x1e4)%7D%2C%7B'text'%3A_0x464a71(0x214)%2C'value'%3A_0x464a71(0x234)%7D%2C%7B'text'%3A_0x464a71(0x200)%2C'value'%3A_0x464a71(0x1b3)%7D%2C%7B'text'%3A_0x464a71(0x1e2)%2C'value'%3A_0x464a71(0x219)%7D%2C%7B'text'%3A'%E8%A7%92%E5%BA%A6'%2C'value'%3A_0x464a71(0x22c)%7D%2C%7B'text'%3A'%E6%AD%A5%E6%95%B0'%2C'value'%3A_0x464a71(0x196)%7D%5D%7D%2C'DIG_TYPE'%3A%7B'acceptReporters'%3A!!%5B%5D%2C'items'%3A%5B%7B'text'%3A'x'%2C'value'%3A'x'%7D%2C%7B'text'%3A'y'%2C'value'%3A'y'%7D%2C%7B'text'%3A'z'%2C'value'%3A'z'%7D%2C%7B'text'%3A'gx'%2C'value'%3A'gx'%7D%2C%7B'text'%3A'gy'%2C'value'%3A'gy'%7D%2C%7B'text'%3A'gz'%2C'value'%3A'gz'%7D%5D%7D%2C'TDDATA_TYPE'%3A%7B'acceptReporters'%3A!!%5B%5D%2C'items'%3A%5B%7B'text'%3A_0x464a71(0x20b)%2C'value'%3A_0x464a71(0x1ca)%7D%2C%7B'text'%3A'%E6%98%AF%E5%90%A6%E7%94%B5%E5%87%BB'%2C'value'%3A_0x464a71(0x1d6)%7D%2C%7B'text'%3A'%E5%BC%BA%E5%BA%A6'%2C'value'%3A'strength'%7D%2C%7B'text'%3A'%E6%A8%A1%E5%BC%8F'%2C'value'%3A_0x464a71(0x226)%7D%5D%7D%2C'QUERY_TYPE'%3A%7B'acceptReporters'%3A!!%5B%5D%2C'items'%3A%5B%7B'text'%3A_0x464a71(0x200)%2C'value'%3A'A'%7D%2C%7B'text'%3A_0x464a71(0x1e2)%2C'value'%3A'B'%7D%2C%7B'text'%3A'%E9%A9%AC%E8%BE%BE'%2C'value'%3A_0x464a71(0x1db)%7D%2C%7B'text'%3A'%E7%94%B5%E9%87%8F'%2C'value'%3A'dl'%7D%2C%7B'text'%3A'%E6%AD%A5%E6%95%B0'%2C'value'%3A_0x464a71(0x196)%7D%2C%7B'text'%3A'%E8%A7%92%E5%BA%A6'%2C'value'%3A_0x464a71(0x22c)%7D%2C%7B'text'%3A'%E5%85%A8%E9%83%A8'%2C'value'%3A'all'%7D%5D%7D%2C'TD_TYPE'%3A%7B'acceptReporters'%3A!!%5B%5D%2C'items'%3A%5B%7B'text'%3A_0x464a71(0x200)%2C'value'%3A'A'%7D%2C%7B'text'%3A_0x464a71(0x1e2)%2C'value'%3A'B'%7D%2C%7B'text'%3A'AB%E9%80%9A%E9%81%93'%2C'value'%3A'AB'%7D%5D%7D%7D%7D%3B%7D%5B'connect'%5D()%7Bconst%20_0x4e3c8f%3D_0x323375%3Bthis%5B_0x4e3c8f(0x236)%5D%5B_0x4e3c8f(0x212)%5D()%3B%7D%5B_0x323375(0x1d3)%5D()%7Bconst%20_0x46f4ce%3D_0x323375%3Bthis%5B'_peripheral'%5D%5B_0x46f4ce(0x1d3)%5D()%3B%7D%5B_0x323375(0x1bf)%5D()%7Bconst%20_0x20b496%3D_0x323375%3Breturn%20this%5B'_peripheral'%5D%5B_0x20b496(0x1bf)%5D()%3B%7D%5B'_onMessage'%5D(_0x3ffb80)%7Bconst%20_0x1aa127%3D_0x323375%3Blet%20_0x28f5d1%3DArray%5B'prototype'%5D%5B_0x1aa127(0x1f0)%5D%5B_0x1aa127(0x1a5)%5D(_0x3ffb80%2C_0x194195%3D%3E('00'%2B_0x194195%5B'toString'%5D(0x10))%5B_0x1aa127(0x20a)%5D(-0x2))%5B_0x1aa127(0x1a7)%5D('')%3Bif(_0x28f5d1%5B_0x1aa127(0x20a)%5D(0x0%2C0x4)!%3D%3D'3571'%7C%7C_0x28f5d1%5B_0x1aa127(0x20a)%5D(0x4%2C0x6)%3D%3D%3D'55')return%3Bconst%20_0x29ce78%3DparseInt(_0x28f5d1%5B'slice'%5D(0x4%2C0x6)%2C0x10)%3Bthis%5B_0x1aa127(0x1d4)%5D%2B%2B%3Bif(_0x29ce78%3D%3D%3D0x1)this%5B_0x1aa127(0x1ef)%5D%3D%7B'state'%3AparseInt(_0x28f5d1%5B_0x1aa127(0x20a)%5D(0x3*0x2%2C0x3*0x2%2B0x2)%2C0x10)%2C'open'%3AparseInt(_0x28f5d1%5B'slice'%5D(0x4*0x2%2C0x4*0x2%2B0x2)%2C0x10)%2C'strength'%3AparseInt(_0x28f5d1%5B_0x1aa127(0x20a)%5D(0x5*0x2%2C0x6*0x2%2B0x2)%2C0x10)%7C%7C0x0%2C'mode'%3AparseInt(_0x28f5d1%5B_0x1aa127(0x20a)%5D(0x7*0x2%2C0x7*0x2%2B0x2)%2C0x10)%7C%7C0x0%7D%2Cthis%5B_0x1aa127(0x229)%5D%5B'startHats'%5D(_0x1aa127(0x231)%2B_0x1aa127(0x215)%2C%7B'type'%3A_0x1aa127(0x234)%7D)%2Cthis%5B_0x1aa127(0x229)%5D%5B_0x1aa127(0x197)%5D(_0x1aa127(0x231)%2B_0x1aa127(0x215)%2C%7B'type'%3A_0x1aa127(0x1b3)%7D)%3Belse%7Bif(_0x29ce78%3D%3D%3D0x2)this%5B_0x1aa127(0x21d)%5D%3D%7B'state'%3AparseInt(_0x28f5d1%5B_0x1aa127(0x20a)%5D(0x3*0x2%2C0x3*0x2%2B0x2)%2C0x10)%2C'open'%3AparseInt(_0x28f5d1%5B_0x1aa127(0x20a)%5D(0x4*0x2%2C0x4*0x2%2B0x2)%2C0x10)%2C'strength'%3AparseInt(_0x28f5d1%5B_0x1aa127(0x20a)%5D(0x5*0x2%2C0x6*0x2%2B0x2)%2C0x10)%7C%7C0x0%2C'mode'%3AparseInt(_0x28f5d1%5B_0x1aa127(0x20a)%5D(0x7*0x2%2C0x7*0x2%2B0x2)%2C0x10)%7C%7C0x0%7D%2Cthis%5B_0x1aa127(0x229)%5D%5B_0x1aa127(0x197)%5D(_0x1aa127(0x231)%2B_0x1aa127(0x215)%2C%7B'type'%3A_0x1aa127(0x234)%7D)%2Cthis%5B_0x1aa127(0x229)%5D%5B_0x1aa127(0x197)%5D('elemodule'%2B_0x1aa127(0x215)%2C%7B'type'%3A_0x1aa127(0x219)%7D)%3Belse%7Bif(_0x29ce78%3D%3D%3D0x3)this%5B'motor'%5D%3DparseInt(_0x28f5d1%5B'slice'%5D(0x3*0x2%2C0x3*0x2%2B0x2)%2C0x10)%3Belse%7Bif(_0x29ce78%3D%3D%3D0x4)this%5B'dl'%5D%3DparseInt(_0x28f5d1%5B_0x1aa127(0x20a)%5D(0x3*0x2%2C0x3*0x2%2B0x2)%2C0x10)%2Cthis%5B_0x1aa127(0x229)%5D%5B'startHats'%5D(_0x1aa127(0x231)%2B'_onDataChanged'%2C%7B'type'%3A'dl'%7D)%3Belse%7Bif(_0x29ce78%3D%3D%3D0x5)this%5B_0x1aa127(0x196)%5D%3DparseInt(_0x28f5d1%5B_0x1aa127(0x20a)%5D(0x3*0x2%2C0x4*0x2%2B0x2)%2C0x10)%2Cthis%5B'runtime'%5D%5B_0x1aa127(0x197)%5D(_0x1aa127(0x231)%2B_0x1aa127(0x215)%2C%7B'type'%3A_0x1aa127(0x196)%7D)%3Belse%20_0x29ce78%3D%3D%3D0x6%26%26(this%5B_0x1aa127(0x22c)%5D%3D%7B'gx'%3AparseInt(_0x28f5d1%5B_0x1aa127(0x20a)%5D(0x3*0x2%2C0x4*0x2%2B0x2)%2C0x10)%2C'gy'%3AparseInt(_0x28f5d1%5B_0x1aa127(0x20a)%5D(0x5*0x2%2C0x6*0x2%2B0x2)%2C0x10)%2C'gz'%3AparseInt(_0x28f5d1%5B'slice'%5D(0x7*0x2%2C0x8*0x2%2B0x2)%2C0x10)%2C'x'%3AparseInt(_0x28f5d1%5B'slice'%5D(0x9*0x2%2C0xa*0x2%2B0x2)%2C0x10)%2C'y'%3AparseInt(_0x28f5d1%5B_0x1aa127(0x20a)%5D(0xb*0x2%2C0xc*0x2%2B0x2)%2C0x10)%2C'z'%3AparseInt(_0x28f5d1%5B_0x1aa127(0x20a)%5D(0xd*0x2%2C0xe*0x2%2B0x2)%2C0x10)%7D%2Cthis%5B'runtime'%5D%5B_0x1aa127(0x197)%5D(_0x1aa127(0x231)%2B'_onDataChanged'%2C%7B'type'%3A_0x1aa127(0x22c)%7D))%3B%7D%7D%7D%7Dthis%5B_0x1aa127(0x229)%5D%5B_0x1aa127(0x197)%5D(_0x1aa127(0x231)%2B_0x1aa127(0x215)%2C%7B'type'%3A'any'%7D)%3B%7D%5B'query'%5D(_0x9abc4)%7Bconst%20_0x2af346%3D_0x323375%3Blet%20_0x10c98f%3D%7B'A'%3A0x1%2C'B'%3A0x2%2C'motor'%3A0x3%2C'dl'%3A0x4%2C'step'%3A0x5%2C'dig'%3A0x6%7D%3Bif(_0x9abc4%5B_0x2af346(0x220)%5D%3D%3D%3D'all')for(let%20_0x37b872%3D0x1%3B_0x37b872%3C%3D0x6%3B_0x37b872%2B%2B)%7Bthis%5B_0x2af346(0x236)%5D%5B'send'%5D(_0x3e4dd5%5B_0x2af346(0x203)%5D%2Cnew%20Uint8Array(%5B_0x37b872%5D))%3B%7Delse%20this%5B_0x2af346(0x236)%5D%5B'send'%5D(_0x3e4dd5%5B_0x2af346(0x203)%5D%2Cnew%20Uint8Array(%5B_0x10c98f%5B_0x9abc4%5B_0x2af346(0x220)%5D%5D%5D))%3B%7D%5B_0x323375(0x1d8)%5D(_0x2b8e9b)%7Bconst%20_0x4d29c0%3D_0x323375%3Blet%20%7Btd%3A_0x3ef25d%2Cstrength%3A_0xbc5e99%2Cmode%3A_0x4b1fc6%7D%3D_0x2b8e9b%3Breturn%20this%5B_0x4d29c0(0x234)%5D(_0x3ef25d%2C0x1%2C_0xbc5e99%2C_0x4b1fc6%2C0x0%2C0x0)%3B%7D%5B_0x323375(0x224)%5D(_0x50e76e)%7Bconst%20_0x41100a%3D_0x323375%3Blet%20%7Btd%3A_0x7d8370%2Cstrength%3A_0x28319f%2Chz%3A_0x10a23f%2Ctimes%3A_0xf7bbbd%7D%3D_0x50e76e%3Breturn%20this%5B_0x41100a(0x234)%5D(_0x7d8370%2C0x1%2C_0x28319f%2C0xb%2C_0x10a23f%2C_0xf7bbbd)%3B%7D%5B_0x323375(0x1c6)%5D(_0x4ed14c)%7Bconst%20_0x23b255%3D_0x323375%3Blet%20%7Btd%3A_0x39430d%7D%3D_0x4ed14c%3Breturn%20this%5B_0x23b255(0x234)%5D(_0x39430d%2C0x0%2C0x0%2C0x0%2C0x0%2C0x0)%3B%7D%5B_0x323375(0x234)%5D(_0x5aa8fc%2C_0x2ac1c1%2C_0x28a071%2C_0xae5916%3D0x1%2C_0x269c37%3D0x0%2C_0x3d3a7b%3D0x0)%7Bconst%20_0x1ab248%3D_0x323375%3Blet%20_0x4c2328%3D''%3Bif(_0x5aa8fc%3D%3D%3D0x1%7C%7C_0x5aa8fc%3D%3D%3D'A')_0x4c2328%2B%3D'01'%3Belse%7Bif(_0x5aa8fc%3D%3D%3D0x2%7C%7C_0x5aa8fc%3D%3D%3D'B')_0x4c2328%2B%3D'02'%3Belse%20_0x5aa8fc%3D%3D%3D0x3%7C%7C_0x5aa8fc%3D%3D%3D'AB'%3F_0x4c2328%2B%3D'03'%3Aconsole%5B_0x1ab248(0x201)%5D('%E9%80%9A%E9%81%93%E9%94%99%E8%AF%AF')%3B%7Dif(_0x2ac1c1)_0x4c2328%2B%3D'01'%3Belse%7B_0x4c2328%2B%3D'00'%5B_0x1ab248(0x1ce)%5D(0x6)%3Blet%20_0x311d3f%3Dnew%20Uint8Array(_0x4c2328%5B'match'%5D(%2F%5B%5Cda-f%5D%7B2%7D%2Fgi)%5B'map'%5D(function(_0x12758c)%7Breturn%20parseInt(_0x12758c%2C0x10)%3B%7D))%3Bthis%5B'_peripheral'%5D%5B_0x1ab248(0x1a6)%5D(_0x3e4dd5%5B'CMD_ELE'%5D%2C_0x311d3f)%3B%7D_0x28a071%3E0x114%3Fconsole%5B_0x1ab248(0x201)%5D(_0x1ab248(0x1bb))%3A_0x4c2328%2B%3D_0x28a071%5B'toString'%5D(0x10)%5B'padStart'%5D(0x4%2C'0')%3B(_0x269c37%7C%7C_0x3d3a7b)%26%26(_0xae5916%3D0x11)%3B_0xae5916%3C%3D0x11%3F_0x4c2328%2B%3D_0xae5916%5B_0x1ab248(0x20f)%5D(0x10)%5B_0x1ab248(0x1e5)%5D(0x2%2C'0')%3Aconsole%5B_0x1ab248(0x201)%5D(_0x1ab248(0x1b4))%3B_0x269c37%3C%3D0xc8%3F_0x4c2328%2B%3D_0x269c37%5B_0x1ab248(0x20f)%5D(0x10)%5B_0x1ab248(0x1e5)%5D(0x2%2C'0')%3Aconsole%5B_0x1ab248(0x201)%5D(_0x1ab248(0x22b))%3B_0x3d3a7b%3C%3D0xff%3F_0x4c2328%2B%3D_0x3d3a7b%5B_0x1ab248(0x20f)%5D(0x10)%5B_0x1ab248(0x1e5)%5D(0x2%2C'0')%3Aconsole%5B_0x1ab248(0x201)%5D(_0x1ab248(0x19a))%3Blet%20_0x52e1d6%3Dnew%20Uint8Array(_0x4c2328%5B_0x1ab248(0x1e0)%5D(%2F%5B%5Cda-f%5D%7B2%7D%2Fgi)%5B_0x1ab248(0x1f0)%5D(function(_0x328854)%7Breturn%20parseInt(_0x328854%2C0x10)%3B%7D))%3Bthis%5B_0x1ab248(0x236)%5D%5B_0x1ab248(0x1a6)%5D(_0x3e4dd5%5B_0x1ab248(0x1d0)%5D%2C_0x52e1d6)%3B%7D%5B_0x323375(0x1f1)%5D(_0x1928c2)%7Bconst%20_0x3fa1fb%3D_0x323375%3Blet%20%7Bmode%3A_0x68c6f4%7D%3D_0x1928c2%3Bthis%5B_0x3fa1fb(0x236)%5D%5B_0x3fa1fb(0x1a6)%5D(_0x3e4dd5%5B_0x3fa1fb(0x1e6)%5D%2C%5BparseInt(_0x68c6f4)%5D)%3B%7D%5B'step_control'%5D(_0xf87ee5)%7Bconst%20_0x10c2f9%3D_0x323375%3Blet%20%7Bmode%3A_0x2a5d7d%7D%3D_0xf87ee5%3Bthis%5B_0x10c2f9(0x236)%5D%5B'send'%5D(_0x3e4dd5%5B_0x10c2f9(0x1be)%5D%2C%5BparseInt(_0x2a5d7d)%5D)%3B%7D%5B_0x323375(0x193)%5D(_0x1b0422)%7Bconst%20_0x4892c2%3D_0x323375%3Blet%20%7Bmode%3A_0xd276e6%7D%3D_0x1b0422%3Bthis%5B_0x4892c2(0x236)%5D%5B_0x4892c2(0x1a6)%5D(_0x3e4dd5%5B_0x4892c2(0x232)%5D%2C%5BparseInt(_0xd276e6)%5D)%3B%7D%5B_0x323375(0x216)%5D(_0x26b61b)%7Bconst%20_0xb4a798%3D_0x323375%3Blet%20%7Btd%3A_0x3053e4%2Ctype%3A_0x258cd0%7D%3D_0x26b61b%3Bif(_0x3053e4%3D%3D%3D0x1%7C%7C_0x3053e4%3D%3D%3D'A')return%20this%5B_0xb4a798(0x1ef)%5D%5B_0x258cd0%5D%3Belse%7Bif(_0x3053e4%3D%3D%3D0x2%7C%7C_0x3053e4%3D%3D%3D'B')return%20this%5B_0xb4a798(0x21d)%5D%5B_0x258cd0%5D%3Belse%7Bif(_0x3053e4%3D%3D%3D0x3%7C%7C_0x3053e4%3D%3D%3D'AB')return%5Bthis%5B_0xb4a798(0x1ef)%5D%5B_0x258cd0%5D%2Cthis%5B_0xb4a798(0x21d)%5D%5B_0x258cd0%5D%5D%3B%7D%7D%7D%5B_0x323375(0x19f)%5D(_0x3de655)%7Bconst%20_0x21b8e9%3D_0x323375%3Blet%20%7Btype%3A_0x360a9b%7D%3D_0x3de655%3Breturn%20this%5B_0x21b8e9(0x22c)%5D%5B_0x360a9b%5D%3B%7D%5B'getdata'%5D(_0x3a6b24)%7Bconst%20_0x8b89a0%3D_0x323375%3Bif(_0x3a6b24%5B_0x8b89a0(0x220)%5D%3D%3D%3D_0x8b89a0(0x1db))return%20this%5B'motor'%5D%3Belse%7Bif(_0x3a6b24%5B_0x8b89a0(0x220)%5D%3D%3D%3D'dl')return%20this%5B'dl'%5D%3Belse%7Bif(_0x3a6b24%5B_0x8b89a0(0x220)%5D%3D%3D%3D_0x8b89a0(0x196))return%20this%5B_0x8b89a0(0x196)%5D%3B%7D%7D%7D%7D_0x1c634f%5B_0x323375(0x21e)%5D%5B_0x323375(0x1f6)%5D(new%20_0xf218bb())%3B%7D(Scratch))%3B%20%7D)(Scratch)%3B"]) {
+        vm.extensionManager.loadExtensionURL(extension);
+      }
+
+    } catch (e) {
+      handleError(e);
+    }
+  </script>
+  
+  
+    <script>
+      const getProjectData = (function() {
+        const storage = scaffolding.storage;
+        storage.onprogress = (total, loaded) => {
+          setProgress(interpolate(0.2, 0.98, loaded / total));
+        };
+        
+        storage.addWebStore(
+          [
+            storage.AssetType.ImageVector,
+            storage.AssetType.ImageBitmap,
+            storage.AssetType.Sound,
+            storage.AssetType.Font
+          ].filter(i => i),
+          (asset) => new URL('./assets/' + asset.assetId + '.' + asset.dataFormat, location).href
+        );
+        return () => new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.onload = () => {
+          resolve(xhr.response);
+        };
+        xhr.onerror = () => {
+          if (location.protocol === 'file:') {
+            reject(new Error('Zip environment must be used from a website, not from a file URL.'));
+          } else {
+            reject(new Error('Request to load project data failed.'));
+          }
+        };
+        xhr.onprogress = (e) => {
+          if (e.lengthComputable) {
+            setProgress(interpolate(0.1, 0.2, e.loaded / e.total));
+          }
+        };
+        xhr.responseType = 'arraybuffer';
+        xhr.open('GET', "./assets/project.json");
+        xhr.send();
+      });
+      })();
+    </script>
+  <script>
+    const run = async () => {
+      const projectData = await getProjectData();
+      await scaffolding.loadProject(projectData);
+      setProgress(1);
+      loadingScreen.hidden = true;
+      if (false) {
+        scaffolding.start();
+      } else {
+        launchScreen.hidden = false;
+        launchScreen.addEventListener('click', () => {
+          launchScreen.hidden = true;
+          scaffolding.start();
+        });
+        launchScreen.focus();
+      }
+    };
+    run().catch(handleError);
+  </script>
+</body>
+</html>
